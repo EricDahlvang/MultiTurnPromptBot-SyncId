@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+</head>
+<body>
+    <div id="webchat" />
+
+    <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+    <script>
+        // Retrieve the token on the server by exchanging the Direct Line Secret 
+        // (see TokenController)
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', "api/token", true);
+        xhr.send();
+        xhr.onreadystatechange = processRequest;
+
+        function processRequest(e) {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var response = JSON.parse(xhr.responseText);
+
+                const dl = window.WebChat.createDirectLine({token: response.token});
+
+                const store = window.WebChat.createStore({}, ({ dispatch }) => {
+                    let lastSyncId;
+
+                    return next => {
+                        return action => {
+                            if (action.payload && action.payload.activity) {
+                                let activity = action.payload.activity;
+                                if (action.type === 'DIRECT_LINE/INCOMING_ACTIVITY'
+                                    && activity.channelData
+                                    && !activity.channelData.clientActivityID
+                                    && activity.channelData.syncId) {
+                                    // if the incoming activity has a syncId, store it
+                                    // so we can then send that along with the next outgoing message
+                                    // (see DIRECT_LINE/POST_ACTIVITY)
+
+                                    lastSyncId = activity.channelData.syncId;
+                                }
+                                else if (action.type === 'DIRECT_LINE/POST_ACTIVITY') {
+                                    // Add the syncId to outgoing channelData, so the bot
+                                    // can determine if the user has responded to this message already
+                                    (action.payload.activity.channelData || (activity.channelData = {})).syncId = lastSyncId;
+                                }
+                            }
+                            return next(action);
+                        }
+                    }
+                })
+
+                window.WebChat.renderWebChat({
+                    directLine: dl,
+                    store,
+                    userID: response.userId
+                }, document.getElementById('webchat'));
+            }
+        }        
+    </script>
+</body>
+</html>
