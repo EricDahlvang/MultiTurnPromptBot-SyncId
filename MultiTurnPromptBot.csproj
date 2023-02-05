@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AsyncKeyedLock" Version="6.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Bot.Builder.Azure" Version="4.5.1" />
     <PackageReference Include="Microsoft.Bot.Builder.Dialogs" Version="4.4.5" />
